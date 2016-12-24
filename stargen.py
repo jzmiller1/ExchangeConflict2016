@@ -49,7 +49,7 @@ def parse_system(data):
 
     system['star'] = dict([col for col in star_data])
 
-    for body in data[4:]:
+    for body in data[3:]:
         body_data = zip([col.strip().replace("'", "")
                          for col in headers_planet.split(',')],
                         [col.strip().replace("'", "")
