@@ -13,19 +13,27 @@ current_node = CENTRALITY_NODE
 command = None
 
 while command != 'Q':
+    node_data = U.node[current_node]
     neighbors = U.neighbors(current_node)
     jumps = " - ".join([str(x) for x in neighbors])
-    stations = U.node[current_node].get('station', None)
-    bodies = [body['planet_no'].split(' ')[2] + ' - ' + body['type']
+    star = " ".join([node_data['system']['star']['name'],
+                     ' - ',
+                     node_data['system']['star']['mass'],
+                     'Solar masses'
+                     ])
+    stations = node_data.get('station', None)
+    bodies = [body['planet_no'] + ' - ' + body['type']
               for body
-              in U.node[current_node]['system']['bodies']]
+              in node_data['system']['bodies']]
 
     print("""
-    Sector    : {:^5}
+    Sector    : {}
+    Star      : {}
     Ports     : {}
     Bodies    : {}
     Warps to Sector(s) : {}
     """.format(current_node,
+               star,
                stations,
                bodies,
                jumps)

@@ -49,12 +49,18 @@ def parse_system(data):
 
     system['star'] = dict([col for col in star_data])
 
+    #  Remove WinStarGen/StarGen.exe from star name
+    system['star']['name'] = system['star']['name'].split(' ')[1]
+
     for body in data[3:]:
         body_data = zip([col.strip().replace("'", "")
                          for col in headers_planet.split(',')],
                         [col.strip().replace("'", "")
                          for col in body.split(',')])
         body = dict([col for col in body_data])
+
+        # Remove WinStarGen/StarGen.exe and Star name from body name
+        body['planet_no'] = body['planet_no'].split(' ')[2]
         bodies.append(body)
 
     system['bodies'] = bodies
