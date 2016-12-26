@@ -4,7 +4,7 @@ from datetime import datetime
 import networkx as nx
 
 
-def get_messages(current_node, neighbors, U):
+def get_messages(current_node, current_player, neighbors, U):
     """Gets messages for a given node"""
     node_data = U.node[current_node]
     messages = ['\nSector  : {}\n'.format(current_node), ]
@@ -25,7 +25,12 @@ def get_messages(current_node, neighbors, U):
     if stations is not None:
         messages.append('Ports   : {}\n'.format(stations))
 
-    jumps = " - ".join([str(x) for x in neighbors])
+    visited_systems = current_player['visited'].keys()
+    jumps = " - ".join([str(x)
+                        if x in visited_systems
+                        else '({})'.format(str(x))
+                        for x in neighbors
+                        ])
     messages.append('Warps to Sector(s) : {}\n'.format(jumps))
     return messages
 
@@ -55,7 +60,7 @@ command = None
 
 while command != 'Q':
     neighbors = U.neighbors(current_node)
-    print("".join(get_messages(current_node, neighbors, U)))
+    print("".join(get_messages(current_node, current_player, neighbors, U)))
 
     clock = datetime.now().strftime('%H:%M:%S')
     command = input("Command [TL={}]:[{}] (?=Help) : ".format(clock,
