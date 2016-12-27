@@ -6,9 +6,9 @@ Have you ever played [Trade Wars](https://en.wikipedia.org/wiki/Trade_Wars "Trad
 This is my fun project on the Trade Wars theme.  I'm looking to up the bar on Universe generation 
 and I hope to use this as a fun playground of experimenting with AI and game development.
 
-This project is not currently playable in any way.
- 
 TradeWars is available [here](http://www.eisonline.com/ "EIS")!  
+
+There's a great gallery of screenshots from TradeWars 2002 available [here](http://www.mobygames.com/game/dos/trade-wars-2002/screenshots "TradeWars 2002 Gallery")!  
 
 ## The Workflow
 In order to experiment with the game you will need to complete the following steps:
