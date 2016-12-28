@@ -1,3 +1,4 @@
+import random
 from collections import Counter
 
 
@@ -37,7 +38,9 @@ def create_player(PLAYER, CENTRALITY_NODE, U):
     U.graph['state']['players'][PLAYER] = {'name': PLAYER,
                                            'wallet': 10000,
                                            'location': CENTRALITY_NODE,
-                                           'visited': Counter()}
+                                           'visited': Counter(),
+                                           'holds': 20,
+                                           'cargo': {}}
     U.graph['state']['players'][PLAYER]['visited'][CENTRALITY_NODE] = 1
 
 
@@ -45,3 +48,12 @@ def get_player_names(U):
     return [player
             for player
             in U.graph['state']['players']]
+
+
+def bimodal(low1, high1, mode1, low2, high2, mode2):
+    """http://stackoverflow.com/questions/651421/bimodal-distribution-in-c-or-python"""
+    toss = random.choice((1, 2))
+    if toss == 1:
+        return random.triangular(low1, high1, mode1)
+    else:
+        return random.triangular(low2, high2, mode2)

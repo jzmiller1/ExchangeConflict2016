@@ -5,11 +5,12 @@ import time
 import networkx as nx
 
 from stargen import get_system_data, parse_system
+from components import Commodity
 
 
 def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
     G = nx.Graph()
-    print(total_systems, deadends, rings, connectivity)
+    print("...with {} systems, {} deadends, {} rings and {} connectivity.".format(total_systems, deadends, rings, connectivity))
     starchart = {}
     system_id = 1
     systems = 0
@@ -51,7 +52,7 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
                     ring.append(system)
                 if len(ring) == ring_size:
                     ring_status = 'complete'
-            print("Ring: {}".format(ring))
+            print("Forming ring... {}".format(ring))
             for x in range(0, len(ring)):
                 if x == 0:
                     G.add_node(ring[-1])
@@ -90,7 +91,9 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
     for node in G.nodes():
         if len(G.neighbors(node)) > central:
             central = node
-    print(central, G.neighbors(central))
+    centrality_jumps = len(G.neighbors(central))
+    print("Centrality is node {} with {} jumps...".format(central,
+                                                          centrality_jumps))
 
     star_names = {}
     for x in range(0, total_systems):
@@ -98,62 +101,36 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
 
     star_names[central] = 'Centrality'
     nx.set_node_attributes(G, 'name', star_names)
-    #print nx.get_node_attributes(G, 'name')
     G.node[central]['label_fill'] = 'red'
     return G
 
-def bimodal(low1, high1, mode1, low2, high2, mode2):
-    """http://stackoverflow.com/questions/651421/bimodal-distribution-in-c-or-python"""
-    toss = random.choice((1, 2))
-    if toss == 1:
-        return random.triangular(low1, high1, mode1)
-    else:
-        return random.triangular(low2, high2, mode2)
 
-
-def stationgen():
+def stationgen(commodities):
     """Generates station."""
-    station = {}
+    station = {'items': {commodity.name: commodity
+                         for commodity in commodities}}
 
-    x = round(bimodal(170, 500, 2, 170, 1200, 1), 0)
-    y = round(bimodal(170, 500, 2, 170, 1200, 1), 0)
-    station['e_buy'] = min(x, y)
-    station['e_sell'] = max(x, y)
-
-    x = round(bimodal(10, 50, 2, 10, 120, 1), 0)
-    y = round(bimodal(10, 120, 1, 10, 50, 2), 0)
-    station['o_buy'] = min(x, y)
-    station['o_sell'] = max(x, y)
-
-    x = round(bimodal(1, 7, 2, 1, 10, 1), 0)
-    y = round(bimodal(1, 10, 1, 1, 7, 2), 0)
-    station['f_buy'] = min(x, y)
-    station['f_sell'] = max(x, y)
-
-    x = round(bimodal(50, 150, 2, 50, 120, 1), 0)
-    y = round(bimodal(50, 120, 1, 50, 150, 2), 0)
-    station['i_buy'] = min(x, y)
-    station['i_sell'] = max(x, y)
+    items = station['items']
+    for item in items:
+        items[item].generate()
 
     station['tags'] = []
 
-    if station['e_buy'] > station['e_sell'] or station['o_buy'] > station['o_sell'] or \
-       station['f_buy'] > station['f_sell'] or station['i_buy'] > station['i_sell']:
-        station['tags'].append("INVALID")
+    for item in items:
+        item = items[item]
+        if item.price_buy > item.price_sell:
+            station['tags'].append("INVALID")
 
-    if station['o_buy'] > 30 and station['e_sell'] < 400 and station['e_buy'] < 100:
+    if station['items']['equipment'].price_buy < 400 and station['items']['equipment'].price_sell < 250:
         station['tags'].append("PRODUCTION")
 
-    if station['o_buy'] > 80:
-        station['tags'].append("ORE MINING")
+    if station['items']['organics'].price_sell < 80:
+        station['tags'].append("ORBITAL HYDROPONICS")
 
-    if station['i_buy'] > 115:
+    if station['items']['ice'].price_sell < 115:
         station['tags'].append("ICE MINING")
 
-    if station['o_buy'] > 55 and station['i_buy'] > 95:
-        station['tags'].append("RESOURCE")
-
-    if station['o_buy'] > 60 and station['i_buy'] > 100 and station['f_buy'] >= 4 and station['e_buy'] > 600:
+    if station['items']['organics'].price_buy > 30 and station['items']['ice'].price_buy > 70 and station['items']['fuel ore'].price_buy >= 4 and station['items']['equipment'].price_buy > 500:
         station['tags'].append("SUPER BUY")
 
     return station
@@ -166,35 +143,28 @@ def getstations(target=30, total_systems=100, stock_volumes=.1):
     superbuys = 0
     superbuys_target = 3 + total_systems / 100
 
-    resources = 0
-    resources_target = 3 + total_systems / 100
-
     productions = 0
     productions_target = 3 + total_systems / 100
 
     mines = 0
     mines_target = 5 + total_systems / 100
     while len(stations) < target:
-        station = stationgen()
+        station = stationgen(COMMODITIES)
         if superbuys < superbuys_target:
             if 'SUPER BUY' in station['tags']:
                 stations.append(station)
                 superbuys += 1
-        elif superbuys >= superbuys_target and resources < resources_target:
-            if 'RESOURCE' in station['tags']:
-                stations.append(station)
-                resources += 1
-        elif superbuys >= superbuys_target and resources >= resources_target and productions < productions_target:
+        elif superbuys >= superbuys_target and productions < productions_target:
             if 'PRODUCTION' in station['tags']:
                 stations.append(station)
                 productions += 1
-        elif superbuys >= superbuys_target and resources >= resources_target and productions >= productions_target and mines < mines_target:
-            if 'ORE MINING' in station['tags'] or 'ICE MINING' in station['tags']:
+        elif superbuys >= superbuys_target and productions >= productions_target and mines < mines_target:
+            if 'ORBITAL HYDROPONICS' in station['tags'] or 'ICE MINING' in station['tags']:
                 stations.append(station)
-        elif superbuys >= superbuys_target and resources >= resources_target and productions >= productions_target and mines >= mines_target and "INVALID" not in station['tags']:
+        elif superbuys >= superbuys_target and productions >= productions_target and mines >= mines_target and "INVALID" not in station['tags']:
             stations.append(station)
     stop = time.time()
-    print("Total Time: {}".format(stop - start))
+    print("Stations took {} seconds to generate...".format(stop - start))
     return stations
 
 
@@ -212,26 +182,35 @@ def universe(total_systems=20, deadends=0, rings=0, connectivity=1, stations='co
              'epic': .4}
 
     u = gen(total_systems, deadends, rings, connectivity)
-    print("Going to getstations!")
+    print("Universe built.")
+    print("Creating stations...")
     stations = getstations(target=station_density[stations] * total_systems,
                            total_systems=total_systems,
                            stock_volumes=stock[stock_volumes])
-    print("Done getting stations!")
     return u, stations
 
 
 
 # MAIN
 
+print("Running program.")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STARGEN_EXE_PATH = 'WinStarGen/StarGen.exe'
 STARGEN_DATA_PATH = 'WinStarGen/html/StarGen.csv'
 
-print("Running program.")
-u, s = universe(25, 5, 1, 1, 'common', 'normal')
-print("Printing u")
-print(u)
+items = [('fuel ore', (1, 7, 2), (1, 10, 1), 5000, 30000),
+         ('organics', (20, 90, 2), (20, 150, 1), 500, 20000),
+         ('equipment', (220, 625, 2), (220, 1200, 1), 500, 20000),
+         ('ice', (50, 150, 2), (50, 120, 1), 500, 20000)
+         ]
 
+print('Generating commodities...')
+COMMODITIES = [Commodity(*item) for item in items]
+
+print("Generating Universe...")
+u, s = universe(25, 5, 1, 1, 'common', 'normal')
+
+print("Placing stations...")
 nodes = u.nodes()
 random.shuffle(nodes)
 for node in nodes:
@@ -244,5 +223,9 @@ for node in nodes:
                                                           STARGEN_DATA_PATH)
                                           )
 
+print("Universe created!")
+print("Writing Universe to file...")
 nx.readwrite.write_gpickle(u, 'multiverse/universe.uni')
+print("Complete!")
+
 

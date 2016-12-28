@@ -55,7 +55,7 @@ while command != 'Q':
                                                               current_node)
                     )
 
-    if command not in ['Q', 'V']:
+    if command not in ['Q', 'V', 'P']:
         target_node = int(command)
         if target_node in neighbors:
             current_node = target_node
@@ -64,5 +64,26 @@ while command != 'Q':
 
     if command == 'V':
         print("Jump history: {}".format(current_player['visited']))
+
+    if command == 'P':
+        node_data = U.node[current_node]
+        stations = node_data.get('station', None)
+
+        if stations is not None:
+            selection = None
+            print("\n<T> Trade at this Port\n<Q> Quit, nevermind")
+            while selection not in ['T', 'Q']:
+                selection = input('Enter your choice? ')
+            if selection == 'T':
+                print("\n{:^14} {:^16} {:^10}".format('Items', 'Prices (B/S)', 'Supply'))
+                print("{:^14} {:^16} {:^10}".format('¯'*5, '¯'*13, '¯'*6))
+                for item in stations['items']:
+                    item = stations['items'][item]
+                    prices = "{:<7}/{:>7}".format(item.price_buy, item.price_sell)
+                    print("{:<14} {:^16} {:^10}".format(item.name, prices, item.units))
+                print('\nYou have {} credits and {} empty cargo holds.\n'.format(current_player['wallet'],
+                                                                                 current_player['holds']))
+                trade = input('Enter your choice? ')
+
 
 nx.readwrite.write_gpickle(U, 'multiverse/universe.uni')
