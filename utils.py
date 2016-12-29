@@ -2,9 +2,9 @@ import random
 from collections import Counter
 
 
-def get_messages(current_node, current_player, neighbors, U):
+def get_messages(current_node, current_player, neighbors, UNI):
     """Gets messages for a given node"""
-    node_data = U.node[current_node]
+    node_data = UNI.graph.node[current_node]
     messages = ['\nSector  : {}\n'.format(current_node), ]
 
     if node_data.get('system') is not None:
@@ -23,7 +23,7 @@ def get_messages(current_node, current_player, neighbors, U):
     if stations is not None:
         messages.append('Ports   : {}\n'.format(stations))
 
-    visited_systems = current_player['visited'].keys()
+    visited_systems = current_player.sectors_visited.keys()
     jumps = " - ".join([str(x)
                         if x in visited_systems
                         else '({})'.format(str(x))
