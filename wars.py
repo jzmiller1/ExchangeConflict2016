@@ -1,14 +1,22 @@
 from datetime import datetime
 import os
 import pickle
+import uuid
 
 import networkx as nx
+import redis
 
-import utils
 from components import Universe, PlayerConfig, GameConfig
+from trade import trade
+import utils
+import secret
 
 # MAIN
-U = nx.readwrite.read_gpickle('multiverse/universe.uni')
+U = nx.readwrite.read_gpickle('multiverse/universe_stationfix.uni')
+r = redis.StrictRedis(host=secret.HOST,
+                      port=secret.PORT,
+                      password=secret.PASSWORD)
+p = r.pubsub()
 
 CENTRALITY_NODE = {v: k
                    for k, v
@@ -46,6 +54,9 @@ else:
             players = UNI.players.keys()
 
 current_player = UNI.players[PLAYER]
+p.subscribe('GAMEWORLD')
+r.publish('GAMEWORLD', '{} joins the game... {}'.format(current_player.name,
+                                                     uuid.uuid4()))
 
 command = None
 
@@ -60,33 +71,46 @@ while command != 'Q':
     command = input("Command [TL={}]:[{}] (?=Help) : ".format(clock,
                                                               current_player.current_node)
                     )
-
-    if command not in ['Q', 'V', 'P']:
+    command = command.upper()
+    if command not in ['Q', 'V', 'P', '?'] and command.isnumeric():
         target_node = int(command)
         if target_node in neighbors:
             current_player.current_node = target_node
             current_player.sectors_visited.update({current_player.current_node: 1})
+        else:
+            print("That's an invalid jump selection...try again!")
 
-    if command == 'V':
+    elif command == 'V':
         print("Jump history: {}".format(current_player.sectors_visited))
 
-    if command == 'P':
-        node_data = UNI.graph.node[current_player.current_node]
-        stations = node_data.get('station', None)
+    elif command == 'C':
+        ship = UNI.ships[current_player.ship_current]
+        print(f"Cargo: {ship['cargo']}\n Wallet: {current_player.wallet}")
 
-        if stations is not None:
-            selection = None
+    elif command == 'P':
+        node_data = UNI.graph.node[current_player.current_node]
+        station = node_data.get('station', None)
+        if station is not None:
+            selection = ''
             print("\n<T> Trade at this Port\n<Q> Quit, nevermind")
-            while selection not in ['T', 'Q']:
+            while selection.upper() not in ['T', 'Q']:
                 selection = input('Enter your choice? ')
             if selection == 'T':
-                print("\n{:^14} {:^16} {:^10}".format('Items', 'Prices (B/S)', 'Supply'))
-                print("{:^14} {:^16} {:^10}".format('¯'*5, '¯'*13, '¯'*6))
-                for item in stations['items']:
-                    item = stations['items'][item]
-                    prices = "{:<7}/{:>7}".format(item.price_buy, item.price_sell)
-                    print("{:<14} {:^16} {:^10}".format(item.name, prices, item.units))
-                print('\nYou have {} credits and Y empty cargo holds.\n'.format(current_player.wallet))
-                trade = input('Enter your choice? ')
+                trade(UNI, current_player, station)
+
+
+
+    elif command == '?':
+        print("\n  This is the help menu.  P to trade at a Port, Q to quit, V to view jump history.")
+
+    else:
+        print("Invalid command!")
+
+
 
 pickle.dump(UNI, open(UNI_PATH, 'wb'))
+r.publish('GAMEWORLD', '{} leaves the game...'.format(current_player.name))
+p.unsubscribe()
+print(UNI.players)
+
+

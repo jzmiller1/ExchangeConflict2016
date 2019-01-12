@@ -105,8 +105,9 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
     return G
 
 
-def stationgen(commodities):
+def stationgen(items):
     """Generates station."""
+    commodities = [Commodity(*item) for item in items]
     station = {'items': {commodity.name: commodity
                          for commodity in commodities}}
 
@@ -136,7 +137,7 @@ def stationgen(commodities):
     return station
 
 
-def getstations(target=30, total_systems=100, stock_volumes=.1):
+def getstations(target=30, total_systems=100, stock_volumes=.1, items=None):
     start = time.time()
     stations = []
 
@@ -149,7 +150,7 @@ def getstations(target=30, total_systems=100, stock_volumes=.1):
     mines = 0
     mines_target = 5 + total_systems / 100
     while len(stations) < target:
-        station = stationgen(COMMODITIES)
+        station = stationgen(items)
         if superbuys < superbuys_target:
             if 'SUPER BUY' in station['tags']:
                 stations.append(station)
@@ -168,7 +169,7 @@ def getstations(target=30, total_systems=100, stock_volumes=.1):
     return stations
 
 
-def universe(total_systems=20, deadends=0, rings=0, connectivity=1, stations='common', stock_volumes='normal'):
+def universe(total_systems=20, deadends=0, rings=0, connectivity=1, stations='common', stock_volumes='normal', items=None):
     station_density = {'sparse': .1,
                        'uncommmon': .15,
                        'common': .3,
@@ -186,7 +187,8 @@ def universe(total_systems=20, deadends=0, rings=0, connectivity=1, stations='co
     print("Creating stations...")
     stations = getstations(target=station_density[stations] * total_systems,
                            total_systems=total_systems,
-                           stock_volumes=stock[stock_volumes])
+                           stock_volumes=stock[stock_volumes],
+                           items=items)
     return u, stations
 
 
@@ -204,11 +206,8 @@ items = [('fuel ore', (1, 7, 2), (1, 10, 1), 5000, 30000),
          ('ice', (50, 150, 2), (50, 120, 1), 500, 20000)
          ]
 
-print('Generating commodities...')
-COMMODITIES = [Commodity(*item) for item in items]
-
 print("Generating Universe...")
-u, s = universe(25, 5, 1, 1, 'common', 'normal')
+u, s = universe(25, 5, 1, 1, 'common', 'normal', items)
 
 print("Placing stations...")
 nodes = u.nodes()
@@ -225,7 +224,7 @@ for node in nodes:
 
 print("Universe created!")
 print("Writing Universe to file...")
-nx.readwrite.write_gpickle(u, 'multiverse/universe.uni')
+nx.readwrite.write_gpickle(u, 'multiverse/universe_stationfix.uni')
 print("Complete!")
 
 

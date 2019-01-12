@@ -1,0 +1,12 @@
+{
+  "types":
+    {
+      "merchant_cruiser": {
+        "holds_min": 20,
+        "holds_max": 75,
+        "shield_max": 400,
+        "hull_cost": 10000
+      }
+    }
+}
+

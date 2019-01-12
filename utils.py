@@ -21,7 +21,7 @@ def get_messages(current_node, current_player, neighbors, UNI):
 
     stations = node_data.get('station', None)
     if stations is not None:
-        messages.append('Ports   : {}\n'.format(stations))
+        messages.append('Ports   : {}\n'.format("-".join(stations['tags'])))
 
     visited_systems = current_player.sectors_visited.keys()
     jumps = " - ".join([str(x)

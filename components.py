@@ -1,5 +1,7 @@
 from collections import Counter
+import json
 import random
+import uuid
 
 from utils import bimodal
 
@@ -47,19 +49,28 @@ class PlayerConfig:
         self.initial_sector_id = initial_sector_id
 
 
+class ShipsConfig:
+    def __init__(self, ship_data='data/ships.json'):
+        f = open(ship_data, 'r')
+        self.types = json.loads(f.read())['types']
+        f.close()
+
+
 class GameConfig:
     def __init__(self,
                  player=PlayerConfig(),
+                 ships=ShipsConfig()
                  ):
         self.player = player
+        self.ships = ships
 
 
 class Player:
-    def __init__(self, game, name, credits, current_node):
+    def __init__(self, game, name, credits, current_node, ship):
         self.universe = game
         self.name = name
         self.wallet = credits
-        self.ship_current = None
+        self.ship_current = ship
         self.sectors_visited = Counter()
         self.current_node = current_node
 
@@ -74,7 +85,18 @@ class Universe:
 
     def create_player(self, name):
         """Add a new player to the game"""
+        sid = uuid.uuid4()
         self.players[name] = Player(self,
                                     name,
                                     credits=self.config.player.initial_credits,
-                                    current_node=self.config.player.initial_sector_id)
+                                    current_node=self.config.player.initial_sector_id,
+                                    ship=sid)
+        self.create_ship('merchant_cruiser', sid)
+
+    def create_ship(self, stype, sid):
+        ship = {}
+        for k, v in self.config.ships.types[stype].items():
+            ship[k] = v
+        ship['holds_current'] = ship['holds_min']
+        ship['cargo'] = {}
+        self.ships[sid] = ship
