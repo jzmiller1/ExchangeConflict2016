@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import uuid
 
 import networkx as nx
 
@@ -87,6 +88,7 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
             choices.append(random.choice(element.nodes()))
         G.add_edge(choices[0], choices[1])
 
+    # this places centrality in the node with the most jumps
     central = 1
     for node in G.nodes():
         if len(G.neighbors(node)) > central:
@@ -95,9 +97,13 @@ def gen(total_systems=20, deadends=0, rings=0, connectivity=1):
     print("Centrality is node {} with {} jumps...".format(central,
                                                           centrality_jumps))
 
+    # get random star name from star names list...if the list is empty use a uuid
     star_names = {}
     for x in range(0, total_systems):
-        star_names[x+1] = names.pop(random.randint(0, len(names)-1))
+        try:
+            star_names[x+1] = names.pop(random.randint(0, len(names)-1))
+        except ValueError:
+            star_names[x+1] = str(uuid.uuid4())
 
     star_names[central] = 'Centrality'
     nx.set_node_attributes(G, 'name', star_names)
@@ -209,22 +215,53 @@ items = [('fuel ore', (1, 7, 2), (1, 10, 1), 5000, 30000),
 print("Generating Universe...")
 u, s = universe(25, 5, 1, 1, 'common', 'normal', items)
 
-print("Placing stations...")
+print("Generate Planetary Systems...")
+# observed system types: 'Rock', 'Terrestrial', 'GasDwarf', 'Sub-Jovian', 'Jovian', 'Ice', 'Venusian', 'Martian', '1Face', 'Water', 'Asteroids'
 nodes = u.nodes()
-random.shuffle(nodes)
 for node in nodes:
-    if s != []:
-        new_station = s.pop()
-        u.node[node]['station'] = new_station
-        u.node[node]['fill'] = 'green'
     u.node[node]['system'] = parse_system(get_system_data(BASE_DIR,
                                                           STARGEN_EXE_PATH,
                                                           STARGEN_DATA_PATH)
                                           )
 
+print("Generate links from sectors to planetary bodies...")
+planet_types = {}
+for node in u.nodes():
+    for body in u.node[node]['system']['bodies']:
+        body_node_label = float(str(node) + '.' + body['planet_no'])
+        u.add_node(body_node_label)
+        u.add_edge(node, body_node_label)
+        btype = body['type']
+        if btype not in planet_types:
+            planet_types[btype] = [body_node_label]
+        else:
+            planet_types[btype].append(body_node_label)
+
+print("Placing stations...")
+nodes = u.nodes()
+random.shuffle(nodes)
+planetary_data = {}
+
+# gather data for use in world building...ice mining on ice planets, etc
+planetary_data['ice_sources'] = planet_types.get('Water', []) + planet_types.get('Ice', [])
+planetary_data['terrestrials'] = planet_types.get('Terrestrial', [])
+
+
+for k in planetary_data:
+    random.shuffle(planetary_data[k])
+
+for node in [sector for sector in nodes if isinstance(sector, int)]:
+    if s != []:
+        new_station = s.pop()
+        # If it is an ice mining station place it on an appropriate body type
+        if 'ICE MINING' in new_station['tags']:
+            node = planetary_data['ice_sources'].pop()
+        u.node[node]['station'] = new_station
+        u.node[node]['fill'] = 'green'
+
 print("Universe created!")
 print("Writing Universe to file...")
-nx.readwrite.write_gpickle(u, 'multiverse/universe_stationfix.uni')
+nx.readwrite.write_gpickle(u, 'multiverse/universe_body_nodes_experi.uni')
 print("Complete!")
 
 

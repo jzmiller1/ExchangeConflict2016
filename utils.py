@@ -7,6 +7,12 @@ def get_messages(current_node, current_player, neighbors, UNI):
     node_data = UNI.graph.node[current_node]
     messages = ['\nSector  : {}\n'.format(current_node), ]
 
+    node_str = str(current_node)
+    if '.' in node_str:
+        info = str(current_node).split('.')
+        parent = int(info[0])
+        body = info[1]
+
     if node_data.get('system') is not None:
         star = 'Star    : {} - {} Solar masses\n'.format(
             node_data['system']['star']['name'],
@@ -14,10 +20,14 @@ def get_messages(current_node, current_player, neighbors, UNI):
         )
         messages.append(star)
         if node_data['system'].get('bodies') is not None:
-            bodies = [body['planet_no'] + ' - ' + body['type']
+
+            bodies = [str(current_node) + '.' +  body['planet_no'] + '-' + body['type']
                       for body
                       in node_data['system']['bodies']]
-            messages.append('Bodies  : {}\n'.format(bodies))
+            messages.append('Bodies  : {}\n'.format(",  ".join(bodies)))
+    else:
+        body = UNI.graph.node[parent]["system"]["bodies"][int(body)-1]
+        messages.append(f'Body    : {body["type"]} Planet - {body["id"]}\n')
 
     stations = node_data.get('station', None)
     if stations is not None:
@@ -28,6 +38,7 @@ def get_messages(current_node, current_player, neighbors, UNI):
                         if x in visited_systems
                         else '({})'.format(str(x))
                         for x in neighbors
+                        if '.' not in str(x)
                         ])
     messages.append('Warps to Sector(s) : {}\n'.format(jumps))
     return messages
@@ -57,3 +68,22 @@ def bimodal(low1, high1, mode1, low2, high2, mode2):
         return random.triangular(low1, high1, mode1)
     else:
         return random.triangular(low2, high2, mode2)
+
+
+def is_float(input):
+    try:
+        num = float(input)
+    except ValueError:
+        return False
+    return True
+
+
+def scanner(current_node, UNI):
+    """Gets data for body in current sector"""
+    if isinstance(current_node, int):
+        node_data = UNI.graph.node[current_node]
+        print(node_data['system']['star'])
+    elif isinstance(current_node, float):
+        sector, body = str(current_node).split('.')
+        node_data = UNI.graph.node[int(sector)]
+        print(node_data['system']['bodies'][int(body)-1])

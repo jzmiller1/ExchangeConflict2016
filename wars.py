@@ -12,7 +12,7 @@ import utils
 import secret
 
 # MAIN
-U = nx.readwrite.read_gpickle('multiverse/universe_stationfix.uni')
+U = nx.readwrite.read_gpickle('multiverse/universe_body_nodes_experi.uni')
 r = redis.StrictRedis(host=secret.HOST,
                       port=secret.PORT,
                       password=secret.PASSWORD)
@@ -72,8 +72,11 @@ while command != 'Q':
                                                               current_player.current_node)
                     )
     command = command.upper()
-    if command not in ['Q', 'V', 'P', '?'] and command.isnumeric():
-        target_node = int(command)
+    if command not in ['Q', 'V', 'P', '?'] and (command.isnumeric() or utils.is_float(command)):
+        try:
+            target_node = int(command)
+        except ValueError:
+            target_node = float(command)
         if target_node in neighbors:
             current_player.current_node = target_node
             current_player.sectors_visited.update({current_player.current_node: 1})
@@ -87,6 +90,9 @@ while command != 'Q':
         ship = UNI.ships[current_player.ship_current]
         print(f"Cargo: {ship['cargo']}\n Wallet: {current_player.wallet}")
 
+    elif command == 'S':
+        utils.scanner(current_player.current_node, UNI)
+
     elif command == 'P':
         node_data = UNI.graph.node[current_player.current_node]
         station = node_data.get('station', None)
@@ -95,13 +101,13 @@ while command != 'Q':
             print("\n<T> Trade at this Port\n<Q> Quit, nevermind")
             while selection.upper() not in ['T', 'Q']:
                 selection = input('Enter your choice? ')
-            if selection == 'T':
+            if selection.upper() == 'T':
                 trade(UNI, current_player, station)
 
 
 
     elif command == '?':
-        print("\n  This is the help menu.  P to trade at a Port, Q to quit, V to view jump history.")
+        print("\n  This is the help menu.  P to trade at a Port, Q to quit, V to view jump history. C to show your wallet and cargo. S to use the scanner on planets and stars.")
 
     else:
         print("Invalid command!")

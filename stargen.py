@@ -1,6 +1,7 @@
 import random
 import os
 import subprocess
+import uuid
 
 
 def get_system_data(BASE_DIR,
@@ -49,6 +50,9 @@ def parse_system(data):
 
     system['star'] = dict([col for col in star_data])
 
+    # add an id
+    system['star']['id'] = uuid.uuid4()
+
     #  Remove WinStarGen/StarGen.exe from star name
     system['star']['name'] = system['star']['name'].split(' ')[1]
 
@@ -61,6 +65,8 @@ def parse_system(data):
 
         # Remove WinStarGen/StarGen.exe and Star name from body name
         body['planet_no'] = body['planet_no'].split(' ')[2]
+        # add an id
+        body['id'] = uuid.uuid4()
         bodies.append(body)
 
     system['bodies'] = bodies
